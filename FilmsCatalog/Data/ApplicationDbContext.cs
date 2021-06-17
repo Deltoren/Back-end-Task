@@ -13,5 +13,6 @@ namespace FilmsCatalog.Data
             : base(options)
         {
         }
+        public DbSet<Film> Films { get; set; }
     }
 }
