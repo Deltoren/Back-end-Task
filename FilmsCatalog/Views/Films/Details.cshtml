@@ -1,54 +1,72 @@
 ﻿@model FilmsCatalog.Models.Film
 
 @{
-    ViewData["Title"] = "Details";
+	ViewData["Title"] = "Details";
 }
 
-<h1>Details</h1>
+<div>
+	<div class="container appear">
+		<div class="row justify-content-center">
 
-<div>
-    <h4>Film</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ReleaseDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ReleaseDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Producer)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Producer)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatorId)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatorId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PosterPath)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PosterPath)
-        </dd>
-    </dl>
+			<div class="col-12 mb-3">
+				<a asp-controller="Films" asp-action="Index" asp-route-pageId="@ViewBag.pageId" class="btn btn-secondary text-white">Назад</a>
+			</div>
+
+			<div class="col col-md-4">
+				<section class="card shadow-sm">
+					<img src="@Model.PosterPath" alt="@Model.Name" />
+					@if (ViewBag.canEditFilm)
+					{
+						<div class="row mr-0 ml-0">
+							<a asp-controller="Films" asp-action="Edit" asp-route-id="@Model.Id" asp-route-pageId="@ViewBag.pageId" title="Редактировать" class="col-6 btn border-light">
+								<i class="fas fa-edit"></i>
+							</a>
+							<button title="Удалить" class="col-6 btn border-light" data-toggle="modal" data-target="#applyDelete">
+								<i class="fas fa-trash"></i>
+							</button>
+						</div>
+					}
+				</section>
+			</div>
+
+			<div class="col col-md-8 mt-4 mt-md-0">
+				<section class="card shadow-sm">
+					<div class="card-header">
+						<h6 class="m-0">
+							<span><b>@Model.Name</b></span>
+							<span>(@Model.ReleaseDate)</span>
+						</h6>
+					</div>
+					<div class="card-body p-0">
+						<ul class="list-group list-group-flush">
+							<li class="list-group-item"><b>Режиссёр:</b> @Model.Producer</li>
+							<li class="list-group-item">@Model.Description</li>
+						</ul>
+					</div>
+				</section>
+			</div>
+
+		</div>
+	</div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<!-- Modal -->
+<div class="modal fade" id="applyDelete" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel">Вы действительно хотите удалить фильм @Model.Name (@Model.ReleaseDate)</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-footer">
+				<form asp-action="Delete" method="post">
+					<input type="hidden" asp-for="Id" />
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+					<input type="submit" value="Delete" class="btn btn-danger" />
+				</form>
+			</div>
+		</div>
+	</div>
 </div>

@@ -69,3 +69,30 @@ body {
   white-space: nowrap;
   line-height: 60px; /* Vertically center the text there */
 }
+
+/* Animations
+-------------------------------------------------- */
+
+div.card-columns > a > div.thumb {
+    transition: all 0.5s;
+}
+
+div.card-columns > a > div.thumb:hover {
+    transition: all 0.5s;
+    transform: scale(1.03);
+}
+
+.appear {
+    animation-duration: 0.8s;
+    animation-name: appearAnim;
+}
+
+@keyframes appearAnim {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

@@ -1,62 +1,63 @@
-﻿@model IEnumerable<FilmsCatalog.Models.Film>
+﻿@model X.PagedList.IPagedList<FilmsCatalog.Models.Film>
+@using X.PagedList
+@using X.PagedList.Mvc.Bootstrap4.Core
+@using X.PagedList.Mvc.Core
+@using X.PagedList.Web.Common
+
+<link href="~/Content/PagedList.css" rel="stylesheet" type="text/css" />
 
 @{
-    ViewData["Title"] = "Index";
+	ViewData["Title"] = "Index";
 }
 
-<h1>Index</h1>
+<div class="appear">
+	<div class="container mt-4">
+		<div class="card-columns" style="display: inline-block">
+			@foreach (var item in Model)
+			{
+				<a asp-controller="Films" asp-action="Details" asp-route-id="@item.Id" asp-route-pageId="@Model.PageNumber" class="text-decoration-none">
+					<div class="thumb card">
+						<img src="@item.PosterPath" alt="@item.Name" class="card-img-top">
+						<div class="card-body p-2 text-center">
+							<h5 class="card-title text-dark">@item.Name</h5>
+						</div>
+					</div>
+				</a>
+			}
+		</div>
+	</div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ReleaseDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Producer)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatorId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PosterPath)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ReleaseDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Producer)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatorId)
-            </td>
-            <td>
-                <img src="@item.PosterPath"/>
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+	<nav aria-label="Page navigation example" class="mt-auto">
+		<ul class="pagination justify-content-center">
+			@Html.PagedListPager((IPagedList)Model, pageId => Url.Action("Index", new { pageId }), Bootstrap4PagedListRenderOptions.ClassicPlusFirstAndLast)
+		</ul>
+	</nav>
+</div>
+
+<style type="text/css">
+	@@media (min-width: 576px) {
+		.card-columns {
+			column-count: 2;
+		}
+	}
+
+	@@media (min-width: 768px) {
+		.card-columns {
+			column-count: 3;
+		}
+	}
+
+	@@media (min-width: 992px) {
+		.card-columns {
+			column-count: 4;
+		}
+	}
+
+	@@media (min-width: 1200px) {
+		.card-columns {
+			column-count: 5;
+		}
+	}
+</style>
+
+

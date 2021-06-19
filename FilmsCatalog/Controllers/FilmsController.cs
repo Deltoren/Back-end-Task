@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using FilmsCatalog.Data;
 using FilmsCatalog.Models;
@@ -12,9 +11,12 @@ using FilmsCatalog.Services;
 using System.IO;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Hosting;
+using X.PagedList;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FilmsCatalog.Controllers
 {
+    [Authorize]
     public class FilmsController : Controller
     {
         private static readonly HashSet<String> AllowedExtensions = new HashSet<String> { ".jpg", ".jpeg", ".png"};
@@ -31,13 +33,17 @@ namespace FilmsCatalog.Controllers
         }
 
         // GET: Films
-        public async Task<IActionResult> Index()
+        [AllowAnonymous]
+        public async Task<IActionResult> Index(Int32? pageId)
         {
-            return View(await context.Films.ToListAsync());
+            Int32 pageSize = 10;
+            Int32 pageNumber = (pageId ?? 1);
+            return View(context.Films.ToPagedList(pageNumber, pageSize));
         }
 
         // GET: Films/Details/5
-        public async Task<IActionResult> Details(Guid? id)
+        [AllowAnonymous]
+        public async Task<IActionResult> Details(Guid? id, Int32? pageId)
         {
             if (id == null)
             {
@@ -50,6 +56,9 @@ namespace FilmsCatalog.Controllers
             {
                 return NotFound();
             }
+
+            ViewBag.pageId = pageId;
+            ViewBag.canEditFilm = userPermissions.CanEditFilm(film);
 
             return View(film);
         }
@@ -67,13 +76,6 @@ namespace FilmsCatalog.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(FilmCreateModel model)
         {
-            var fileName = Path.GetFileName(ContentDispositionHeaderValue.Parse(model.File.ContentDisposition).FileName.Trim('"'));
-            var fileExt = Path.GetExtension(fileName);
-            if (!FilmsController.AllowedExtensions.Contains(fileExt))
-            {
-                this.ModelState.AddModelError(nameof(model.File), "This file type is prohibited");
-            }
-
             if (this.ModelState.IsValid)
             {
                 var film = new Film
@@ -85,11 +87,24 @@ namespace FilmsCatalog.Controllers
                     CreatorId = userPermissions.GetIdUser()
                 };
 
-                var attachmentPath = Path.Combine(this.hostingEnvironment.WebRootPath, "posters", film.Id.ToString("N") + fileExt);
-                film.PosterPath = $"/posters/{film.Id:N}{fileExt}";
-                using (var fileStream = new FileStream(attachmentPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
+                if (model.File != null)
                 {
-                    await model.File.CopyToAsync(fileStream);
+                    var fileName = Path.GetFileName(ContentDispositionHeaderValue.Parse(model.File.ContentDisposition).FileName.Trim('"'));
+                    var fileExt = Path.GetExtension(fileName);
+                    if (!FilmsController.AllowedExtensions.Contains(fileExt))
+                    {
+                        this.ModelState.AddModelError(nameof(model.File), "This file type is prohibited");
+                    }
+                    var attachmentPath = Path.Combine(this.hostingEnvironment.WebRootPath, "posters", film.Id.ToString("N") + fileExt);
+                    film.PosterPath = $"/posters/{film.Id:N}{fileExt}";
+                    using (var fileStream = new FileStream(attachmentPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
+                    {
+                        await model.File.CopyToAsync(fileStream);
+                    }
+                }
+                else
+                {
+                    film.PosterPath = "/posters/noPoster.jpg";
                 }
 
                 this.context.Films.Add(film);
@@ -102,19 +117,35 @@ namespace FilmsCatalog.Controllers
         }
 
         // GET: Films/Edit/5
-        public async Task<IActionResult> Edit(Guid? id)
+        public async Task<IActionResult> Edit(Guid? id, Int32? pageId)
         {
             if (id == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
-            var film = await context.Films.FindAsync(id);
-            if (film == null)
+            var film = await this.context.Films
+                .SingleOrDefaultAsync(m => m.Id == id);
+            Boolean flag = userPermissions.CanEditFilm(film);
+
+            if (film == null || !flag)
             {
-                return NotFound();
+                return this.NotFound();
             }
-            return View(film);
+
+            var model = new FilmEditModel
+            {
+                Name = film.Name,
+                Description = film.Description,
+                ReleaseDate = film.ReleaseDate,
+                Producer = film.Producer
+            };
+
+            ViewBag.id = id;
+            ViewBag.pageId = pageId;
+
+            return this.View(model);
+
         }
 
         // POST: Films/Edit/5
@@ -122,84 +153,81 @@ namespace FilmsCatalog.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name,Description,ReleaseDate,Producer,UserId,PosterPath")] Film film)
+        public async Task<IActionResult> Edit(Guid? id, Int32? pageId, FilmEditModel model)
         {
-            if (id != film.Id)
+            if (id == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
-            if (ModelState.IsValid)
+            var film = await this.context.Films
+                .SingleOrDefaultAsync(m => m.Id == id);
+
+            if (film == null)
             {
-                try
-                {
-                    context.Update(film);
-                    await context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!FilmExists(film.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                return this.NotFound();
             }
-            return View(film);
+
+            if (this.ModelState.IsValid)
+            {
+                film.Name = model.Name;
+                film.Description = model.Description;
+                film.ReleaseDate = model.ReleaseDate;
+                film.Producer = model.Producer;
+
+                if (model.File != null)
+                {
+                    var posterPath = Path.Combine(this.hostingEnvironment.WebRootPath, "posters", film.Id.ToString("N") + Path.GetExtension(film.PosterPath));
+                    System.IO.File.Delete(posterPath);
+                    film.PosterPath = null;
+
+                    var fileName = Path.GetFileName(ContentDispositionHeaderValue.Parse(model.File.ContentDisposition).FileName.Trim('"'));
+                    var fileExt = Path.GetExtension(fileName);
+                    var attachmentPath = Path.Combine(this.hostingEnvironment.WebRootPath, "posters", film.Id.ToString("N") + fileExt);
+                    film.PosterPath = $"/posters/{film.Id:N}{fileExt}";
+                    using (var fileStream = new FileStream(attachmentPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read))
+                    {
+                        await model.File.CopyToAsync(fileStream);
+                    }
+                }
+
+                await this.context.SaveChangesAsync();
+                return this.RedirectToAction("Details", "Films", new { id = id, pageId = pageId });
+            }
+
+            return this.View(model);
+
         }
 
-        // GET: Films/Delete/5
+        // POST: Films/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid? id)
         {
             if (id == null)
             {
-                return NotFound();
-            }
-
-            var film = await context.Films
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (film == null)
-            {
-                return NotFound();
-            }
-
-            return View(film);
-        }
-
-        // POST: Films/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(Guid? id)
-        {
-            if (id == null)
-            {
                 return this.NotFound();
             }
 
             var film = await context.Films
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (film == null || !this.userPermissions.CanEditFilm(film))
+            Boolean flag = userPermissions.CanEditFilm(film);
+
+            if (film == null || !flag)
             {
                 return this.NotFound();
             }
 
-            var posterPath = Path.Combine(this.hostingEnvironment.WebRootPath, "posters", film.Id.ToString("N") + Path.GetExtension(film.PosterPath));
-            System.IO.File.Delete(posterPath);
+            if (film.PosterPath != "/posters/noPoster.jpg")
+            {
+                var posterPath = Path.Combine(this.hostingEnvironment.WebRootPath, "posters", film.Id.ToString("N") + Path.GetExtension(film.PosterPath));
+                System.IO.File.Delete(posterPath);
+            }
 
             this.context.Films.Remove(film);
             await context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool FilmExists(Guid id)
-        {
-            return context.Films.Any(e => e.Id == id);
         }
     }
 }

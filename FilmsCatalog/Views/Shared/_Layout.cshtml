@@ -1,11 +1,13 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Каталог фильмов</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@ViewData["Title"] - Каталог фильмов</title>
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="~/css/site.css" />
+	<!-- Web fonts -->
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 </head>
 <body>
     <header>
@@ -25,9 +27,17 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>*@
                     </ul>
-                    <partial name="_FunctionsPartial" />
-                    <partial name="_LoginPartial" />
-                </div>
+					<div class="container">
+						<div class="row justify-content-end">
+							<div class="col-md-auto col-12 order-last order-md-first">
+								<partial name="_FunctionsPartial" />
+							</div>
+							<div class="col-md-auto col-12">
+								<partial name="_LoginPartial" />
+							</div>
+						</div>
+                    </div>
+				</div>
             </div>
         </nav>
     </header>
